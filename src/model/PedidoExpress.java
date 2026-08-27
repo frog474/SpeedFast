@@ -7,6 +7,12 @@ public class PedidoExpress extends Pedido {
     }
 
     @Override
+    public void asignarRepartidor() {
+        this.repartidor = "Pedro Soto";
+        System.out.println("Repartidor asignado automáticamente: " + repartidor);
+    }
+
+    @Override
     public int calcularTiempoEntrega() {
         if (distanciaKm > 5) {
             return 15;

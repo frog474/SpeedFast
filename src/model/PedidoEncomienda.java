@@ -7,6 +7,12 @@ public class PedidoEncomienda extends Pedido {
     }
 
     @Override
+    public void asignarRepartidor() {
+        this.repartidor = "Daniela Tapia";
+        System.out.println("Repartidor asignado automáticamente: " + repartidor);
+    }
+
+    @Override
     public int calcularTiempoEntrega() {
         return (int) (20 + (1.5 * distanciaKm));
     }
