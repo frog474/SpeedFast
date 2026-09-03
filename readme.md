@@ -2,23 +2,25 @@
 
 ## Descripción
 
-SpeedFast es un sistema de gestión de pedidos de reparto desarrollado en Java. El proyecto permite administrar distintos tipos de pedidos: comida, encomiendas y pedidos express, cada uno con su propia lógica para la asignación de repartidores y el cálculo del tiempo estimado de entrega.
+SpeedFast es un sistema de gestión de pedidos de reparto desarrollado en Java. El sistema permite administrar distintos tipos de pedidos: comida, encomiendas y pedidos express, cada uno con sus propias reglas para la asignación de repartidores y el cálculo del tiempo estimado de entrega.
 
-El sistema fue desarrollado aplicando conceptos de Programación Orientada a Objetos, principalmente **abstracción, herencia, polimorfismo, sobrecarga, sobrescritura e interfaces**.
+En esta versión se incorpora **programación concurrente**, permitiendo simular a varios repartidores realizando entregas de manera simultánea mediante hilos en Java.
 
 ## Objetivo
 
-Implementar un sistema orientado a objetos que permita gestionar pedidos de distintos tipos y sus operaciones de envío, demostrando el uso de una clase abstracta, clases derivadas e interfaces.
+Desarrollar un sistema orientado a objetos que permita gestionar distintos tipos de pedidos y simular la entrega concurrente de múltiples pedidos.
 
 El sistema permite:
 
 * Asignar repartidores automáticamente.
-* Asignar un repartidor manualmente.
-* Mostrar el resumen de cada pedido.
+* Asignar repartidores manualmente.
+* Mostrar el resumen de los pedidos.
 * Calcular el tiempo estimado de entrega.
 * Despachar pedidos.
 * Cancelar pedidos.
-* Registrar y visualizar el historial de entregas.
+* Visualizar el historial de entregas.
+* Asignar múltiples pedidos a distintos repartidores.
+* Ejecutar entregas de manera concurrente.
 
 ## Tecnologías utilizadas
 
@@ -26,6 +28,9 @@ El sistema permite:
 * IntelliJ IDEA
 * Programación Orientada a Objetos
 * ArrayList
+* Runnable
+* Thread
+* ExecutorService
 * GitHub
 
 ## Estructura del proyecto
@@ -45,51 +50,44 @@ SpeedFast/
     │   ├── Pedido.java
     │   ├── PedidoComida.java
     │   ├── PedidoEncomienda.java
-    │   └── PedidoExpress.java
+    │   ├── PedidoExpress.java
+    │   └── Repartidor.java
     │
     └── service/
         └── ControladorDeEnvios.java
 ```
 
-## Clases
+## Clases principales
 
 ### Pedido
 
 `Pedido` es una clase abstracta que contiene los atributos y comportamientos comunes de los diferentes tipos de pedidos.
 
-Sus principales atributos son:
+Atributos principales:
 
 * `idPedido`
 * `direccionEntrega`
 * `distanciaKm`
 * `repartidor`
 
-La clase contiene el método `mostrarResumen()`, que permite mostrar la información principal del pedido.
+También contiene el método `mostrarResumen()` y define el método abstracto `calcularTiempoEntrega()`.
 
-También posee dos versiones del método `asignarRepartidor()`:
+Además, posee dos versiones de `asignarRepartidor()`:
 
 ```java
 asignarRepartidor()
 asignarRepartidor(String nombreRepartidor)
 ```
 
-Esto permite demostrar **sobrecarga de métodos**, ya que el segundo método recibe el nombre del repartidor como parámetro.
-
-Finalmente, `Pedido` define el método abstracto:
-
-```java
-calcularTiempoEntrega()
-```
-
-Cada clase derivada implementa este método de acuerdo con sus propias reglas.
+Esto permite demostrar la **sobrecarga de métodos**.
 
 ### PedidoComida
 
 Representa un pedido de comida.
 
-La asignación automática establece a **Luis Díaz** como repartidor.
+Su repartidor automático es **Luis Díaz**.
 
-El tiempo de entrega se calcula mediante:
+El tiempo estimado de entrega se calcula mediante:
 
 ```text
 15 + (2 × distancia en km)
@@ -99,30 +97,49 @@ El tiempo de entrega se calcula mediante:
 
 Representa un pedido de encomienda.
 
-La asignación automática establece a **Daniela Tapia** como repartidora.
+Su repartidora automática es **Daniela Tapia**.
 
-El tiempo de entrega se calcula mediante:
+El tiempo estimado de entrega se calcula mediante:
 
 ```text
 20 + (1.5 × distancia en km)
 ```
 
-Además, en `Main` se demuestra la asignación manual utilizando la sobrecarga de `asignarRepartidor(String nombreRepartidor)`.
+También permite asignar un repartidor manualmente mediante el método sobrecargado `asignarRepartidor(String nombreRepartidor)`.
 
 ### PedidoExpress
 
 Representa un pedido express.
 
-La asignación automática establece a **Pedro Soto** como repartidor.
+Su repartidor automático es **Pedro Soto**.
 
-Su tiempo de entrega depende de la distancia:
+El tiempo estimado depende de la distancia:
 
-* Si la distancia es mayor a 5 km: **15 minutos**.
-* Si la distancia es menor o igual a 5 km: **10 minutos**.
+* Más de 5 km: 15 minutos.
+* 5 km o menos: 10 minutos.
+
+### Repartidor
+
+`Repartidor` representa a un repartidor encargado de realizar una lista de pedidos.
+
+La clase implementa:
+
+```java
+Runnable
+```
+
+Cada repartidor posee:
+
+* `nombre`
+* `pedidosAsignados`
+
+El método `run()` recorre los pedidos asignados de manera secuencial y simula cada entrega utilizando `Thread.sleep()` con un tiempo aleatorio.
+
+Esto permite que varios repartidores puedan realizar sus entregas simultáneamente.
 
 ## Interfaces
 
-El proyecto utiliza tres interfaces para separar responsabilidades específicas.
+El proyecto utiliza tres interfaces:
 
 ### Despachable
 
@@ -142,7 +159,7 @@ Define el método:
 void cancelar();
 ```
 
-Permite cancelar el pedido seleccionado.
+Permite cancelar un pedido.
 
 ### Rastreable
 
@@ -152,45 +169,35 @@ Define el método:
 void verHistorial();
 ```
 
-Permite visualizar el historial de entregas realizadas.
+Permite visualizar el historial de entregas.
 
 ## ControladorDeEnvios
 
-`ControladorDeEnvios` implementa las tres interfaces:
+`ControladorDeEnvios` implementa las interfaces:
 
 * `Despachable`
 * `Cancelable`
 * `Rastreable`
 
-Esta clase se encarga de controlar las operaciones de envío.
+Se encarga de controlar las operaciones de despacho, cancelación y consulta del historial.
 
-Utiliza un `ArrayList<String>` para almacenar el historial de pedidos despachados.
+Utiliza un `ArrayList<String>` para almacenar el historial de los pedidos despachados.
 
-También posee el método `seleccionarPedido(Pedido pedido)`, que permite establecer el pedido sobre el cual se realizará una operación.
+## Programación Orientada a Objetos
 
-## Conceptos de Programación Orientada a Objetos
+El proyecto aplica los principales conceptos de Programación Orientada a Objetos:
 
 ### Abstracción
 
-La clase `Pedido` está definida como una clase abstracta. Contiene los elementos comunes de todos los pedidos y establece el método abstracto `calcularTiempoEntrega()`.
-
-Esto permite que cada tipo de pedido implemente su propio cálculo.
+`Pedido` es una clase abstracta que contiene los elementos comunes de todos los tipos de pedidos.
 
 ### Herencia
 
-Las clases:
-
-* `PedidoComida`
-* `PedidoEncomienda`
-* `PedidoExpress`
-
-heredan de `Pedido`.
-
-De esta forma, reutilizan sus atributos y métodos comunes.
+Las clases `PedidoComida`, `PedidoEncomienda` y `PedidoExpress` heredan de `Pedido`.
 
 ### Sobrescritura
 
-Cada clase derivada sobrescribe los métodos:
+Las clases derivadas sobrescriben métodos como:
 
 ```java
 asignarRepartidor()
@@ -208,107 +215,99 @@ asignarRepartidor()
 asignarRepartidor(String nombreRepartidor)
 ```
 
-El primero permite una asignación automática mediante las clases derivadas, mientras que el segundo permite indicar manualmente el nombre del repartidor.
-
 ### Polimorfismo
 
-El polimorfismo se demuestra en `Main` mediante un arreglo de tipo `Pedido` que contiene objetos de las tres clases derivadas:
+Se utiliza un arreglo de tipo `Pedido` que contiene diferentes tipos de pedidos:
 
 ```java
 Pedido[] pedidos = {
-    pedidoComida,
-    pedidoEncomienda,
-    pedidoExpress
+    pedidoComida1,
+    pedidoEncomienda1,
+    pedidoExpress1
 };
 ```
 
-Al recorrer este arreglo y llamar a `calcularTiempoEntrega()`, cada objeto ejecuta la implementación correspondiente a su propia clase.
+Al llamar a `calcularTiempoEntrega()`, cada objeto ejecuta la implementación correspondiente a su clase.
 
 ### Interfaces
 
-Las interfaces permiten separar las responsabilidades relacionadas con el despacho, cancelación y consulta del historial.
+Las interfaces permiten separar las responsabilidades de despacho, cancelación y seguimiento del historial.
 
-`ControladorDeEnvios` implementa las tres interfaces, permitiendo mantener estas funciones organizadas y desacopladas de la jerarquía de pedidos.
+## Programación concurrente
 
-## Simulación
+En esta versión se incorpora programación multihilo para simular entregas simultáneas.
 
-La clase `Main` realiza una simulación completa del sistema.
+Se crean tres repartidores:
 
-Durante la ejecución se realizan las siguientes operaciones:
+* Camila
+* Luis
+* Pedro
 
-1. Creación de un pedido de comida.
-2. Creación de una encomienda.
-3. Creación de un pedido express.
-4. Asignación automática de un repartidor.
-5. Asignación manual de un repartidor mediante sobrecarga.
-6. Visualización del resumen de los pedidos.
-7. Cálculo de los tiempos estimados de entrega.
-8. Demostración de polimorfismo.
-9. Despacho de los pedidos de comida y encomienda.
-10. Cancelación del pedido express.
-11. Visualización del historial de entregas.
+Cada repartidor recibe dos pedidos.
 
-## Ejemplo de ejecución
+La ejecución se realiza mediante `ExecutorService`:
 
-```text
-===== SPEEDFAST =====
-
-[Pedido Comida]
-Repartidor asignado automáticamente: Luis Díaz
-Pedido #101
-Dirección: Av. Italia 456
-Distancia: 4.0 km
-Tiempo estimado: 23 minutos
-
-[Pedido Encomienda]
-Repartidor asignado: Daniela Tapia
-Pedido #102
-Dirección: Av. Independencia 123
-Distancia: 6.0 km
-Tiempo estimado: 29 minutos
-
-[Pedido Express]
-Repartidor asignado automáticamente: Pedro Soto
-Pedido #103
-Dirección: Av. Apoquindo 1500
-Distancia: 7.0 km
-Tiempo estimado: 15 minutos
-
-===== POLIMORFISMO =====
-
-Pedido #101
-Tiempo estimado: 23 minutos
-
-Pedido #102
-Tiempo estimado: 29 minutos
-
-Pedido #103
-Tiempo estimado: 15 minutos
-
-===== DESPACHO =====
-
-Pedido #101 despachado correctamente.
-Pedido #102 despachado correctamente.
-
-Cancelando Pedido Express #103...
-→ Pedido #103 cancelado exitosamente.
-
-===== HISTORIAL =====
-
-Historial:
-- Pedido #101 – entregado por Luis Díaz
-- Pedido #102 – entregado por Daniela Tapia
+```java
+ExecutorService executor = Executors.newFixedThreadPool(3);
 ```
 
-## Escalabilidad y mantenibilidad
+Luego se ejecutan los tres repartidores:
 
-La estructura del proyecto facilita la incorporación de nuevos tipos de pedidos. Una nueva clase puede heredar de `Pedido` e implementar sus propias reglas para la asignación del repartidor y el cálculo del tiempo de entrega.
+```java
+executor.execute(camila);
+executor.execute(luis);
+executor.execute(pedro);
+```
 
-La utilización de interfaces permite mantener separadas las responsabilidades de despacho, cancelación y seguimiento.
+Finalmente, se utiliza:
 
-La abstracción y la herencia permiten reutilizar código común, mientras que el polimorfismo permite trabajar con diferentes tipos de pedidos mediante una referencia de la clase base.
+```java
+executor.shutdown();
+```
 
-Esto contribuye a que el sistema sea más **organizado, reutilizable, mantenible y escalable**.
+para evitar que se agreguen nuevas tareas y permitir que los repartidores finalicen sus entregas.
+
+El programa espera hasta que todos los repartidores terminan la simulación.
+
+## Simulación de entregas
+
+Cada repartidor procesa sus pedidos secuencialmente dentro de su propio hilo.
+
+El tiempo de cada entrega se simula utilizando `Thread.sleep()` con valores aleatorios.
+
+Ejemplo:
+
+```text
+===== SIMULACIÓN DE ENTREGAS CONCURRENTES =====
+
+[Repartidor: Camila] Entregando PedidoComida #101...
+[Repartidor: Pedro] Entregando PedidoEncomienda #102...
+[Repartidor: Luis] Entregando PedidoExpress #103...
+[Repartidor: Luis] Pedido #103 entregado.
+[Repartidor: Luis] Entregando PedidoComida #104...
+[Repartidor: Camila] Pedido #101 entregado.
+[Repartidor: Camila] Entregando PedidoExpress #106...
+[Repartidor: Luis] Pedido #104 entregado.
+[Repartidor: Pedro] Pedido #102 entregado.
+[Repartidor: Pedro] Entregando PedidoEncomienda #105...
+[Repartidor: Camila] Pedido #106 entregado.
+[Repartidor: Pedro] Pedido #105 entregado.
+
+===== TODAS LAS ENTREGAS FINALIZADAS =====
+```
+
+El orden de los mensajes puede variar en cada ejecución debido a la naturaleza concurrente de los hilos.
+
+## Ejecución
+
+Para ejecutar el proyecto:
+
+1. Abrir el proyecto en **IntelliJ IDEA**.
+2. Abrir la clase `Main.java`.
+3. Ejecutar el método `main`.
+4. Observar en la consola la ejecución de las entregas concurrentes.
+
+La ejecución finaliza cuando todos los repartidores han terminado sus entregas.
 
 ## Autor
 
