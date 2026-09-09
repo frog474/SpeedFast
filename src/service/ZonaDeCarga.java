@@ -23,6 +23,18 @@ public class ZonaDeCarga {
                 + p.getDireccionEntrega());
     }
 
+    public synchronized boolean hayPedidosPendientes() {
+
+        for (Pedido pedido : pedidos) {
+
+            if (pedido.getEstado() == EstadoPedido.PENDIENTE) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public synchronized Pedido retirarPedido() {
 
         for (Pedido pedido : pedidos) {
