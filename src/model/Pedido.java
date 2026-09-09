@@ -1,44 +1,45 @@
 package model;
 
-public abstract class Pedido {
+public class Pedido {
 
-    protected int idPedido;
-    protected String direccionEntrega;
-    protected double distanciaKm;
-    protected String repartidor;
+    private int id;
+    private String direccionEntrega;
+    private EstadoPedido estado;
 
-    public Pedido(int idPedido, String direccionEntrega, double distanciaKm) {
-        this.idPedido = idPedido;
+    public Pedido(int id, String direccionEntrega, EstadoPedido estado) {
+        this.id = id;
         this.direccionEntrega = direccionEntrega;
-        this.distanciaKm = distanciaKm;
+        this.estado = estado;
     }
 
-    // Sobrecarga: asignación manual por nombre
-    public void asignarRepartidor(String nombreRepartidor) {
-        this.repartidor = nombreRepartidor;
-        System.out.println("Repartidor asignado: " + nombreRepartidor);
+    public int getId() {
+        return id;
     }
 
-    // Método que las clases hijas sobrescribirán
-    public void asignarRepartidor() {
-        System.out.println("Asignando repartidor para el pedido " + idPedido);
+    public String getDireccionEntrega() {
+        return direccionEntrega;
     }
 
-    // Método implementado en la clase abstracta
-    public void mostrarResumen() {
-        System.out.println("Pedido #" + idPedido);
-        System.out.println("Dirección: " + direccionEntrega);
-        System.out.println("Distancia: " + distanciaKm + " km");
+    public EstadoPedido getEstado() {
+        return estado;
     }
 
-    // Cada tipo de pedido calculará su propio tiempo
-    public abstract int calcularTiempoEntrega();
-
-    public int getIdPedido() {
-        return idPedido;
+    public void setId(int id) {
+        this.id = id;
     }
 
-    public String getRepartidor() {
-        return repartidor;
+    public void setDireccionEntrega(String direccionEntrega) {
+        this.direccionEntrega = direccionEntrega;
+    }
+
+    public void setEstado(EstadoPedido nuevoEstado) {
+        this.estado = nuevoEstado;
+    }
+
+    @Override
+    public String toString() {
+        return "Pedido #" + id
+                + " | Dirección: " + direccionEntrega
+                + " | Estado: " + estado;
     }
 }

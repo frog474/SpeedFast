@@ -1,16 +1,17 @@
 package model;
 
-import java.util.ArrayList;
+import service.ZonaDeCarga;
+
 import java.util.Random;
 
 public class Repartidor implements Runnable {
 
     private String nombre;
-    private ArrayList<Pedido> pedidosAsignados;
+    private ZonaDeCarga zonaDeCarga;
 
-    public Repartidor(String nombre, ArrayList<Pedido> pedidosAsignados) {
+    public Repartidor(String nombre, ZonaDeCarga zonaDeCarga) {
         this.nombre = nombre;
-        this.pedidosAsignados = pedidosAsignados;
+        this.zonaDeCarga = zonaDeCarga;
     }
 
     @Override
@@ -18,11 +19,25 @@ public class Repartidor implements Runnable {
 
         Random random = new Random();
 
-        for (Pedido pedido : pedidosAsignados) {
+        while (true) {
 
-            System.out.println("[Repartidor: " + nombre + "] Entregando "
-                    + pedido.getClass().getSimpleName()
-                    + " #" + pedido.getIdPedido() + "...");
+            Pedido pedido = zonaDeCarga.retirarPedido();
+
+            if (pedido == null) {
+                System.out.println("[Zona de carga vacía]");
+                break;
+            }
+
+            pedido.setEstado(EstadoPedido.EN_REPARTO);
+
+            System.out.println("[Repartidor - " + nombre
+                    + "] Retirando pedido #" + pedido.getId() + "...");
+
+            System.out.println("[Repartidor - " + nombre
+                    + "] Estado: " + pedido.getEstado());
+
+            System.out.println("[Repartidor - " + nombre
+                    + "] Entregando pedido #" + pedido.getId() + "...");
 
             try {
                 int tiempoEspera = 1000 + random.nextInt(3000);
@@ -30,14 +45,17 @@ public class Repartidor implements Runnable {
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                System.out.println("[Repartidor: " + nombre
+
+                System.out.println("[Repartidor - " + nombre
                         + "] Entrega interrumpida.");
+
                 return;
             }
 
-            System.out.println("[Repartidor: " + nombre
-                    + "] Pedido #" + pedido.getIdPedido()
-                    + " entregado.");
+            pedido.setEstado(EstadoPedido.ENTREGADO);
+
+            System.out.println("[Repartidor - " + nombre
+                    + "] Estado: " + pedido.getEstado());
         }
     }
 }
