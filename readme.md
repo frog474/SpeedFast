@@ -2,35 +2,45 @@
 
 ## Descripción
 
-SpeedFast es un sistema de gestión de pedidos de reparto desarrollado en Java. El sistema permite administrar distintos tipos de pedidos: comida, encomiendas y pedidos express, cada uno con sus propias reglas para la asignación de repartidores y el cálculo del tiempo estimado de entrega.
+SpeedFast es un sistema de gestión de pedidos de reparto desarrollado en Java.
 
-En esta versión se incorpora **programación concurrente**, permitiendo simular a varios repartidores realizando entregas de manera simultánea mediante hilos en Java.
+En esta versión se incorpora **programación concurrente y sincronización de procesos**, permitiendo simular a varios repartidores trabajando simultáneamente sobre una zona de carga compartida.
+
+Los pedidos pasan por diferentes estados durante el proceso de entrega:
+
+```text
+PENDIENTE → EN_REPARTO → ENTREGADO
+```
+
+El sistema utiliza varios hilos para que los repartidores puedan retirar y procesar pedidos de manera concurrente, evitando que un mismo pedido sea retirado por más de un repartidor.
 
 ## Objetivo
 
-Desarrollar un sistema orientado a objetos que permita gestionar distintos tipos de pedidos y simular la entrega concurrente de múltiples pedidos.
+Desarrollar un sistema orientado a objetos que permita gestionar pedidos y simular su entrega mediante múltiples hilos, utilizando mecanismos de sincronización para proteger los recursos compartidos.
 
 El sistema permite:
 
-* Asignar repartidores automáticamente.
-* Asignar repartidores manualmente.
-* Mostrar el resumen de los pedidos.
-* Calcular el tiempo estimado de entrega.
-* Despachar pedidos.
-* Cancelar pedidos.
-* Visualizar el historial de entregas.
-* Asignar múltiples pedidos a distintos repartidores.
-* Ejecutar entregas de manera concurrente.
+* Crear pedidos.
+* Almacenar pedidos en una zona de carga compartida.
+* Retirar pedidos de forma segura.
+* Asignar pedidos a distintos repartidores.
+* Cambiar el estado de los pedidos durante el proceso de entrega.
+* Ejecutar múltiples repartidores de manera concurrente.
+* Simular tiempos de entrega mediante `Thread.sleep()`.
+* Garantizar que cada pedido sea retirado y procesado por un único repartidor.
+* Esperar la finalización de todos los procesos antes de terminar la ejecución.
 
 ## Tecnologías utilizadas
 
 * Java
+* JDK 25
 * IntelliJ IDEA
 * Programación Orientada a Objetos
-* ArrayList
-* Runnable
-* Thread
-* ExecutorService
+* `Runnable`
+* `Thread`
+* `ExecutorService`
+* `synchronized`
+* `ArrayList`
 * GitHub
 
 ## Estructura del proyecto
@@ -41,86 +51,92 @@ SpeedFast/
     ├── app/
     │   └── Main.java
     │
-    ├── interfaces/
-    │   ├── Cancelable.java
-    │   ├── Despachable.java
-    │   └── Rastreable.java
-    │
     ├── model/
+    │   ├── EstadoPedido.java
     │   ├── Pedido.java
-    │   ├── PedidoComida.java
-    │   ├── PedidoEncomienda.java
-    │   ├── PedidoExpress.java
     │   └── Repartidor.java
     │
     └── service/
-        └── ControladorDeEnvios.java
+        └── ZonaDeCarga.java
 ```
 
 ## Clases principales
 
 ### Pedido
 
-`Pedido` es una clase abstracta que contiene los atributos y comportamientos comunes de los diferentes tipos de pedidos.
+`Pedido` representa un pedido dentro del sistema.
 
-Atributos principales:
+Sus principales atributos son:
 
-* `idPedido`
+* `id`
 * `direccionEntrega`
-* `distanciaKm`
-* `repartidor`
+* `estado`
 
-También contiene el método `mostrarResumen()` y define el método abstracto `calcularTiempoEntrega()`.
+El estado del pedido utiliza el enum `EstadoPedido`.
 
-Además, posee dos versiones de `asignarRepartidor()`:
+La clase incluye métodos `getters`, `setters` y `toString()` para gestionar y mostrar la información de cada pedido.
+
+El estado puede cambiar durante el proceso de entrega mediante:
 
 ```java
-asignarRepartidor()
-asignarRepartidor(String nombreRepartidor)
+setEstado(EstadoPedido nuevoEstado)
 ```
 
-Esto permite demostrar la **sobrecarga de métodos**.
+### EstadoPedido
 
-### PedidoComida
+`EstadoPedido` es un `enum` que define los estados posibles de un pedido:
 
-Representa un pedido de comida.
+```java
+PENDIENTE,
+EN_REPARTO,
+ENTREGADO
+```
 
-Su repartidor automático es **Luis Díaz**.
+Estos estados permiten representar el ciclo de vida de cada pedido durante la simulación.
 
-El tiempo estimado de entrega se calcula mediante:
+### ZonaDeCarga
+
+`ZonaDeCarga` representa el recurso compartido entre los distintos repartidores.
+
+Internamente utiliza una lista de pedidos:
+
+```java
+private List<Pedido> pedidos;
+```
+
+La clase posee los métodos:
+
+```java
+public synchronized void agregarPedido(Pedido p)
+```
+
+y:
+
+```java
+public synchronized Pedido retirarPedido()
+```
+
+El uso de `synchronized` permite controlar el acceso concurrente a la zona de carga.
+
+De esta forma, cuando varios repartidores intentan retirar pedidos al mismo tiempo, solamente uno puede ejecutar la operación de retiro a la vez.
+
+La zona de carga solamente permite retirar pedidos que se encuentren en estado:
 
 ```text
-15 + (2 × distancia en km)
+PENDIENTE
 ```
 
-### PedidoEncomienda
-
-Representa un pedido de encomienda.
-
-Su repartidora automática es **Daniela Tapia**.
-
-El tiempo estimado de entrega se calcula mediante:
+Una vez retirado, el pedido pasa inmediatamente a:
 
 ```text
-20 + (1.5 × distancia en km)
+EN_REPARTO
 ```
 
-También permite asignar un repartidor manualmente mediante el método sobrecargado `asignarRepartidor(String nombreRepartidor)`.
+Si no quedan pedidos pendientes, el método retorna `null` y el repartidor finaliza su ejecución.
 
-### PedidoExpress
+## Repartidor
 
-Representa un pedido express.
-
-Su repartidor automático es **Pedro Soto**.
-
-El tiempo estimado depende de la distancia:
-
-* Más de 5 km: 15 minutos.
-* 5 km o menos: 10 minutos.
-
-### Repartidor
-
-`Repartidor` representa a un repartidor encargado de realizar una lista de pedidos.
+`Repartidor` representa a un trabajador encargado de procesar pedidos.
 
 La clase implementa:
 
@@ -131,184 +147,229 @@ Runnable
 Cada repartidor posee:
 
 * `nombre`
-* `pedidosAsignados`
+* `zonaDeCarga`
 
-El método `run()` recorre los pedidos asignados de manera secuencial y simula cada entrega utilizando `Thread.sleep()` con un tiempo aleatorio.
+Al ejecutar el método `run()`, el repartidor:
 
-Esto permite que varios repartidores puedan realizar sus entregas simultáneamente.
+1. Intenta retirar un pedido de la zona de carga.
+2. Cambia el estado del pedido a `EN_REPARTO`.
+3. Muestra información del pedido retirado.
+4. Simula el tiempo de entrega mediante `Thread.sleep()`.
+5. Cambia el estado del pedido a `ENTREGADO`.
+6. Vuelve a la zona de carga para intentar retirar otro pedido.
+7. Finaliza cuando no quedan pedidos pendientes.
 
-## Interfaces
-
-El proyecto utiliza tres interfaces:
-
-### Despachable
-
-Define el método:
-
-```java
-void despachar();
-```
-
-Permite realizar el despacho de un pedido.
-
-### Cancelable
-
-Define el método:
-
-```java
-void cancelar();
-```
-
-Permite cancelar un pedido.
-
-### Rastreable
-
-Define el método:
-
-```java
-void verHistorial();
-```
-
-Permite visualizar el historial de entregas.
-
-## ControladorDeEnvios
-
-`ControladorDeEnvios` implementa las interfaces:
-
-* `Despachable`
-* `Cancelable`
-* `Rastreable`
-
-Se encarga de controlar las operaciones de despacho, cancelación y consulta del historial.
-
-Utiliza un `ArrayList<String>` para almacenar el historial de los pedidos despachados.
-
-## Programación Orientada a Objetos
-
-El proyecto aplica los principales conceptos de Programación Orientada a Objetos:
-
-### Abstracción
-
-`Pedido` es una clase abstracta que contiene los elementos comunes de todos los tipos de pedidos.
-
-### Herencia
-
-Las clases `PedidoComida`, `PedidoEncomienda` y `PedidoExpress` heredan de `Pedido`.
-
-### Sobrescritura
-
-Las clases derivadas sobrescriben métodos como:
-
-```java
-asignarRepartidor()
-calcularTiempoEntrega()
-```
-
-para adaptar su comportamiento según el tipo de pedido.
-
-### Sobrecarga
-
-La clase `Pedido` posee dos métodos `asignarRepartidor()` con diferentes parámetros:
-
-```java
-asignarRepartidor()
-asignarRepartidor(String nombreRepartidor)
-```
-
-### Polimorfismo
-
-Se utiliza un arreglo de tipo `Pedido` que contiene diferentes tipos de pedidos:
-
-```java
-Pedido[] pedidos = {
-    pedidoComida1,
-    pedidoEncomienda1,
-    pedidoExpress1
-};
-```
-
-Al llamar a `calcularTiempoEntrega()`, cada objeto ejecuta la implementación correspondiente a su clase.
-
-### Interfaces
-
-Las interfaces permiten separar las responsabilidades de despacho, cancelación y seguimiento del historial.
+El uso de `Runnable` permite ejecutar cada repartidor como una tarea independiente dentro de un hilo.
 
 ## Programación concurrente
 
-En esta versión se incorpora programación multihilo para simular entregas simultáneas.
+El sistema utiliza tres repartidores ejecutándose de manera concurrente:
 
-Se crean tres repartidores:
-
+* Juan
 * Camila
-* Luis
 * Pedro
 
-Cada repartidor recibe dos pedidos.
+Los tres comparten la misma instancia de `ZonaDeCarga`.
 
-La ejecución se realiza mediante `ExecutorService`:
+La ejecución se realiza mediante:
 
 ```java
 ExecutorService executor = Executors.newFixedThreadPool(3);
 ```
 
-Luego se ejecutan los tres repartidores:
+Luego se agregan los tres repartidores al executor:
 
 ```java
+executor.execute(juan);
 executor.execute(camila);
-executor.execute(luis);
 executor.execute(pedro);
 ```
 
-Finalmente, se utiliza:
+De esta forma, los tres pueden procesar pedidos simultáneamente.
+
+Finalmente:
 
 ```java
 executor.shutdown();
 ```
 
-para evitar que se agreguen nuevas tareas y permitir que los repartidores finalicen sus entregas.
+impide que se agreguen nuevas tareas y permite que los procesos actuales terminen correctamente.
 
-El programa espera hasta que todos los repartidores terminan la simulación.
+El programa espera hasta que todos los repartidores hayan finalizado.
+
+## Sincronización
+
+La sincronización es necesaria porque la `ZonaDeCarga` es un **recurso compartido** por los tres repartidores.
+
+Los métodos que modifican la lista de pedidos utilizan `synchronized`:
+
+```java
+public synchronized void agregarPedido(Pedido p)
+```
+
+```java
+public synchronized Pedido retirarPedido()
+```
+
+Esto evita problemas de concurrencia al momento de retirar pedidos.
+
+Por ejemplo, si dos repartidores intentan retirar un pedido al mismo tiempo, el método sincronizado garantiza que la operación se realice de manera controlada.
+
+Una vez que un repartidor retira un pedido, este se elimina de la zona de carga y ya no puede ser retirado nuevamente por otro repartidor.
+
+## Estados de los pedidos
+
+Cada pedido sigue el siguiente flujo:
+
+```text
+PENDIENTE
+    ↓
+EN_REPARTO
+    ↓
+ENTREGADO
+```
+
+### PENDIENTE
+
+El pedido se encuentra esperando en la zona de carga.
+
+### EN_REPARTO
+
+El pedido ya fue retirado por un repartidor y se encuentra en proceso de entrega.
+
+### ENTREGADO
+
+El repartidor terminó la simulación de entrega y el pedido fue entregado correctamente.
 
 ## Simulación de entregas
 
-Cada repartidor procesa sus pedidos secuencialmente dentro de su propio hilo.
+El tiempo de entrega se simula mediante:
 
-El tiempo de cada entrega se simula utilizando `Thread.sleep()` con valores aleatorios.
-
-Ejemplo:
-
-```text
-===== SIMULACIÓN DE ENTREGAS CONCURRENTES =====
-
-[Repartidor: Camila] Entregando PedidoComida #101...
-[Repartidor: Pedro] Entregando PedidoEncomienda #102...
-[Repartidor: Luis] Entregando PedidoExpress #103...
-[Repartidor: Luis] Pedido #103 entregado.
-[Repartidor: Luis] Entregando PedidoComida #104...
-[Repartidor: Camila] Pedido #101 entregado.
-[Repartidor: Camila] Entregando PedidoExpress #106...
-[Repartidor: Luis] Pedido #104 entregado.
-[Repartidor: Pedro] Pedido #102 entregado.
-[Repartidor: Pedro] Entregando PedidoEncomienda #105...
-[Repartidor: Camila] Pedido #106 entregado.
-[Repartidor: Pedro] Pedido #105 entregado.
-
-===== TODAS LAS ENTREGAS FINALIZADAS =====
+```java
+Thread.sleep()
 ```
 
-El orden de los mensajes puede variar en cada ejecución debido a la naturaleza concurrente de los hilos.
+Se utiliza un tiempo aleatorio entre 1 y 4 segundos aproximadamente para representar que cada entrega puede tardar una cantidad diferente de tiempo.
+
+Debido a la ejecución concurrente, el orden en que aparecen los mensajes puede cambiar en cada ejecución.
+
+Por ejemplo:
+
+```text
+[Repartidor - Juan] Retirando pedido #1...
+[Repartidor - Pedro] Retirando pedido #2...
+[Repartidor - Camila] Retirando pedido #3...
+
+[Repartidor - Juan] Estado: EN_REPARTO
+[Repartidor - Camila] Estado: EN_REPARTO
+[Repartidor - Pedro] Estado: EN_REPARTO
+
+[Repartidor - Juan] Entregando pedido #1...
+[Repartidor - Camila] Entregando pedido #3...
+[Repartidor - Pedro] Entregando pedido #2...
+```
+
+Posteriormente, los repartidores pueden retirar nuevos pedidos hasta que la zona de carga quede vacía.
+
+## Ejemplo de ejecución
+
+```text
+===== SPEEDFAST =====
+
+[Zona de carga inicializada]
+Pedido #1 agregado. Destino: Santiago Centro
+Pedido #2 agregado. Destino: Providencia
+Pedido #3 agregado. Destino: Ñuñoa
+Pedido #4 agregado. Destino: Recoleta
+Pedido #5 agregado. Destino: Las Condes
+
+[Repartidor - Juan] Retirando pedido #1...
+[Repartidor - Pedro] Retirando pedido #2...
+[Repartidor - Camila] Retirando pedido #3...
+
+[Repartidor - Juan] Estado: EN_REPARTO
+[Repartidor - Pedro] Estado: EN_REPARTO
+[Repartidor - Camila] Estado: EN_REPARTO
+
+[Repartidor - Juan] Entregando pedido #1...
+[Repartidor - Pedro] Entregando pedido #2...
+[Repartidor - Camila] Entregando pedido #3...
+
+[Repartidor - Juan] Estado: ENTREGADO
+[Repartidor - Juan] Retirando pedido #4...
+
+[Repartidor - Camila] Estado: ENTREGADO
+[Repartidor - Camila] Retirando pedido #5...
+
+[Repartidor - Pedro] Estado: ENTREGADO
+[Zona de carga vacía]
+
+[Repartidor - Juan] Estado: ENTREGADO
+[Zona de carga vacía]
+
+[Repartidor - Camila] Estado: ENTREGADO
+[Zona de carga vacía]
+
+Todos los pedidos han sido entregados correctamente
+
+Process finished with exit code 0
+```
+
+El orden exacto de los mensajes puede variar en cada ejecución debido a la naturaleza concurrente de los hilos.
+
+## Manejo de interrupciones
+
+Durante la simulación se controla la excepción `InterruptedException` generada por `Thread.sleep()`.
+
+Cuando un hilo es interrumpido, se restaura su estado mediante:
+
+```java
+Thread.currentThread().interrupt();
+```
+
+y se finaliza correctamente la ejecución del repartidor.
+
+## Principios de Programación Orientada a Objetos
+
+El proyecto utiliza principios de Programación Orientada a Objetos para organizar las responsabilidades del sistema.
+
+### Encapsulamiento
+
+Los atributos de las clases se mantienen privados y se accede a ellos mediante métodos públicos.
+
+### Responsabilidad de las clases
+
+Cada clase tiene una responsabilidad específica:
+
+* `Pedido`: representa y administra la información y estado de un pedido.
+* `EstadoPedido`: define los estados posibles.
+* `ZonaDeCarga`: administra el recurso compartido y controla el retiro de pedidos.
+* `Repartidor`: ejecuta el proceso concurrente de entrega.
+* `Main`: crea los objetos y coordina la ejecución del sistema.
+
+Esta separación facilita la comprensión y el mantenimiento del código.
 
 ## Ejecución
 
 Para ejecutar el proyecto:
 
 1. Abrir el proyecto en **IntelliJ IDEA**.
-2. Abrir la clase `Main.java`.
+2. Abrir `src/app/Main.java`.
 3. Ejecutar el método `main`.
-4. Observar en la consola la ejecución de las entregas concurrentes.
+4. Observar la salida en la consola.
+5. Verificar que los tres repartidores trabajen de manera concurrente.
+6. Verificar que todos los pedidos terminen en estado `ENTREGADO`.
 
-La ejecución finaliza cuando todos los repartidores han terminado sus entregas.
+La ejecución finaliza cuando todos los repartidores han terminado sus tareas.
+
+## Resultado
+
+El sistema permite comprobar el funcionamiento de múltiples hilos trabajando sobre un recurso compartido.
+
+La utilización de `synchronized` en la zona de carga evita interferencias entre los repartidores y garantiza que un pedido retirado por un repartidor no pueda ser retirado nuevamente por otro.
+
+Al finalizar la simulación, todos los pedidos han sido procesados y entregados correctamente.
 
 ## Autor
 
-Proyecto desarrollado como actividad académica de Programación Orientada a Objetos.
+Proyecto desarrollado como actividad académica de Programación Orientada a Objetos y Programación Concurrente.
